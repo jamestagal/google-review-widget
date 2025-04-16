@@ -2,18 +2,61 @@
 name = "google-review-widget"
 compatibility_date = "2023-10-30"
 
-# Pages configuration
+# Pages configuration - use this for a static site
 pages_build_output_dir = "build"
 
 # KV Namespace for caching review data
 [[kv_namespaces]]
 binding = "REVIEWS_KV"
-id = "local-dev-reviews-kv-id" # Replace with actual KV ID in production
-preview_id = "local-dev-reviews-kv-id" # Replace with actual preview KV ID
+id = "45557524f80e4b219e891820a8b91289"
+preview_id = "45557524f80e4b219e891820a8b91289"
+
+# Analytics KV namespace
+[[kv_namespaces]]
+binding = "ANALYTICS_KV"
+id = "4d6f1f7d3bae49b8a90e624de96b5a1e"
+preview_id = "4d6f1f7d3bae49b8a90e624de96b5a1e"
+
+# API Keys KV namespace
+[[kv_namespaces]]
+binding = "API_KEYS_KV"
+id = "c50429e2dc3e45629cf3781fdc324e2a"
+preview_id = "c50429e2dc3e45629cf3781fdc324e2a"
 
 # Environment variables
-[env.production.vars]
+[vars]
 NODE_VERSION = "20"
 
-[env.preview.vars]
-NODE_VERSION = "20"
+# Production environment
+[env.production]
+# Production-specific variables can go here
+
+# Production environment KV namespaces
+[[env.production.kv_namespaces]]
+binding = "REVIEWS_KV"
+id = "45557524f80e4b219e891820a8b91289"
+
+[[env.production.kv_namespaces]]
+binding = "ANALYTICS_KV"
+id = "4d6f1f7d3bae49b8a90e624de96b5a1e"
+
+[[env.production.kv_namespaces]]
+binding = "API_KEYS_KV"
+id = "c50429e2dc3e45629cf3781fdc324e2a"
+
+# Preview environment
+[env.preview]
+# Preview-specific variables can go here
+
+# Preview environment KV namespaces
+[[env.preview.kv_namespaces]]
+binding = "REVIEWS_KV"
+id = "45557524f80e4b219e891820a8b91289"
+
+[[env.preview.kv_namespaces]]
+binding = "ANALYTICS_KV"
+id = "4d6f1f7d3bae49b8a90e624de96b5a1e"
+
+[[env.preview.kv_namespaces]]
+binding = "API_KEYS_KV"
+id = "c50429e2dc3e45629cf3781fdc324e2a"
