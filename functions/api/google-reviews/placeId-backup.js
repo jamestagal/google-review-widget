@@ -149,95 +149,95 @@ export async function onRequest(context) {
                 
                 // In test environments or if api key is missing, use mock data
                 if (!apiKey || isTestMode) {
-                console.log('Using mock data due to missing API key or test environment');
-                // Create mock data for testing or when API key isn't available
-                return {
-                    placeId,
-                    businessName: "Test Business Name",
-                    rating: 4.7,
-                    totalReviews: 28,
-                    reviews: [
-                        {
-                            authorName: "Test Reviewer",
-                            rating: 5,
-                            text: "This is test review data generated because no API key was available.",
-                            time: Date.now(),
-                            relativeTime: "just now"
+                    console.log('Using mock data due to missing API key or test environment');
+                    reviewData = {
+                        placeId,
+                        businessName: "Test Business Name",
+                        rating: 4.7,
+                        totalReviews: 28,
+                        reviews: [
+                            {
+                                authorName: "Test Reviewer",
+                                rating: 5,
+                                text: "This is test review data generated because no API key was available.",
+                                time: Date.now(),
+                                relativeTime: "just now"
+                            }
+                        ],
+                        fetchedAt: new Date().toISOString()
+                    };
+                } else {
+                    // Construct the URL for Google Places API
+                    // Using Place Details API to get reviews
+                    const apiUrl = new URL('https://maps.googleapis.com/maps/api/place/details/json');
+                    apiUrl.searchParams.append('place_id', placeId);
+                    apiUrl.searchParams.append('fields', 'name,rating,reviews,user_ratings_total');
+                    apiUrl.searchParams.append('key', apiKey);
+                    
+                    // Make the request to Google Places API
+                    const response = await fetch(apiUrl.toString(), {
+                        headers: {
+                            'Accept': 'application/json',
+                            'User-Agent': 'Google-Reviews-Widget/1.0'
                         }
-                    ],
-                    fetchedAt: new Date().toISOString()
-                };
-            }
-            
-            // Construct the URL for Google Places API
-            // Using Place Details API to get reviews
-            const apiUrl = new URL('https://maps.googleapis.com/maps/api/place/details/json');
-            apiUrl.searchParams.append('place_id', placeId);
-            apiUrl.searchParams.append('fields', 'name,rating,reviews,user_ratings_total');
-            apiUrl.searchParams.append('key', apiKey);
-            
-            // Make the request to Google Places API
-            const response = await fetch(apiUrl.toString(), {
-                headers: {
-                    'Accept': 'application/json',
-                    'User-Agent': 'Google-Reviews-Widget/1.0'
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`Google Places API error: ${response.status}`, errorText);
+                        throw new Error(`Error fetching from Google Places API: ${response.status}`);
+                    }
+                    
+                    const googleData = await response.json();
+                    
+                    // Check for API-level errors
+                    if (googleData.status !== 'OK') {
+                        console.error('Google Places API returned an error:', googleData.status, googleData.error_message);
+                        throw new Error(googleData.error_message || `Google Places API error: ${googleData.status}`);
+                    }
+                    
+                    // Transform Google's data format to our own
+                    const place = googleData.result;
+                    reviewData = {
+                        placeId,
+                        businessName: place.name,
+                        rating: place.rating || 0,
+                        totalReviews: place.user_ratings_total || 0,
+                        reviews: (place.reviews || []).map(review => ({
+                            authorName: review.author_name,
+                            authorPhotoUrl: review.profile_photo_url,
+                            rating: review.rating,
+                            text: review.text,
+                            time: review.time * 1000, // Convert to milliseconds
+                            relativeTime: review.relative_time_description
+                        })),
+                        fetchedAt: new Date().toISOString()
+                    };
+                    
+                    // Determine cache TTL based on subscription tier
+                    // This would actually come from a database lookup in production
+                    const userTier = 'free'; // Default to free tier
+                    let cacheTtl = 86400; // 24 hours for free tier
+                    
+                    switch(userTier) {
+                        case 'basic':
+                            cacheTtl = 43200; // 12 hours
+                            break;
+                        case 'pro':
+                            cacheTtl = 21600; // 6 hours
+                            break;
+                        case 'premium':
+                            cacheTtl = 10800; // 3 hours
+                            break;
+                    }
+                    
+                    // Store in KV with appropriate TTL (unless we're in test mode without REVIEWS_KV)
+                    if (env.REVIEWS_KV) {
+                        await env.REVIEWS_KV.put(cacheKey, JSON.stringify(reviewData), { expirationTtl: cacheTtl });
+                    } else {
+                        console.warn('REVIEWS_KV not available, skipping cache storage');
+                    }
                 }
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error(`Google Places API error: ${response.status}`, errorText);
-                throw new Error(`Error fetching from Google Places API: ${response.status}`);
-            }
-            
-            const googleData = await response.json();
-            
-            // Check for API-level errors
-            if (googleData.status !== 'OK') {
-                console.error('Google Places API returned an error:', googleData.status, googleData.error_message);
-                throw new Error(googleData.error_message || `Google Places API error: ${googleData.status}`);
-            }
-            
-            // Transform Google's data format to our own
-            const place = googleData.result;
-            reviewData = {
-                placeId,
-                businessName: place.name,
-                rating: place.rating || 0,
-                totalReviews: place.user_ratings_total || 0,
-                reviews: (place.reviews || []).map(review => ({
-                    authorName: review.author_name,
-                    authorPhotoUrl: review.profile_photo_url,
-                    rating: review.rating,
-                    text: review.text,
-                    time: review.time * 1000, // Convert to milliseconds
-                    relativeTime: review.relative_time_description
-                })),
-                fetchedAt: new Date().toISOString()
-            };
-            
-            // Determine cache TTL based on subscription tier
-            // This would actually come from a database lookup in production
-            const userTier = 'free'; // Default to free tier
-            let cacheTtl = 86400; // 24 hours for free tier
-            
-            switch(userTier) {
-                case 'basic':
-                    cacheTtl = 43200; // 12 hours
-                    break;
-                case 'pro':
-                    cacheTtl = 21600; // 6 hours
-                    break;
-                case 'premium':
-                    cacheTtl = 10800; // 3 hours
-                    break;
-            }
-            
-            // Store in KV with appropriate TTL (unless we're in test mode without REVIEWS_KV)
-            if (env.REVIEWS_KV) {
-                await env.REVIEWS_KV.put(cacheKey, JSON.stringify(reviewData), { expirationTtl: cacheTtl });
-            } else {
-                console.warn('REVIEWS_KV not available, skipping cache storage');
             }
         }
         
@@ -260,28 +260,20 @@ export async function onRequest(context) {
             console.log('Test environment detected, returning test response despite error');
             return new Response(JSON.stringify({
                 status: 'error',
-                fromCache: false,
-                message: error.message || 'An unexpected error occurred',
-                data: {
-                    placeId,
-                    businessName: "Error Test Business",
-                    rating: 0,
-                    totalReviews: 0,
-                    reviews: [],
-                    fetchedAt: new Date().toISOString(),
-                    error: error.message
-                }
+                message: 'Error fetching reviews (test mode)',
+                error: error.message,
+                stack: error.stack
             }), {
                 headers,
-                status: 200 // Return 200 for tests even though there was an error
+                status: 200 // Return 200 in test mode for easier testing
             });
         }
         
-        // In development or when debugging, include error details
+        // In production, return a proper error response
         return new Response(JSON.stringify({
             status: 'error',
-            message: error.message || 'An unexpected error occurred',
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            message: 'Error fetching reviews',
+            error: error.message
         }), {
             headers,
             status: 500
