@@ -13,6 +13,8 @@ const config = {
 				include: ['/*'],
 				exclude: ['<all>'],
 			},
+			// Explicitly set the build directory to match Cloudflare Pages settings
+			outDir: 'build'
 		}),
 	},
 	preprocess: vitePreprocess(),
