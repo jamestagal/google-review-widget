@@ -12,17 +12,8 @@ id = "local-dev-reviews-kv-id" # Replace with actual KV ID in production
 preview_id = "local-dev-reviews-kv-id" # Replace with actual preview KV ID
 
 # Environment variables
-[vars]
-NODE_VERSION = "20"
-
-# Production environment
-[env.production]
-# Production-specific vars
 [env.production.vars]
 NODE_VERSION = "20"
 
-# Preview environment
-[env.preview]
-# Preview-specific vars
 [env.preview.vars]
 NODE_VERSION = "20"
