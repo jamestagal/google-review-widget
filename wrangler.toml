@@ -1,0 +1,34 @@
+# Wrangler configuration for Google Reviews Widget
+name = "google-reviews-widget"
+main = "build/index.js" # This will be overridden by Cloudflare Pages deployment
+compatibility_date = "2023-10-30"
+
+# KV Namespace for caching review data
+# For local development, this creates a local KV namespace
+# For production, you'll need to replace the id with your actual KV namespace ID
+[[kv_namespaces]]
+binding = "REVIEWS_KV"
+id = "local-dev-reviews-kv-id" # Replace with actual KV ID in production
+preview_id = "local-dev-reviews-kv-id" # Replace with actual preview KV ID
+
+# Environment variables
+[vars]
+# Use for non-secret configuration that can be in git
+# Example: APP_ENV = "development"
+
+# Add development specific settings
+[env.development]
+workers_dev = true
+
+# Add production specific settings
+[env.production]
+workers_dev = false
+
+# Miniflare configuration for local development environment
+[miniflare]
+kv_persist = true
+cache_persist = true
+
+# Triggers configuration for Cloudflare Pages
+[triggers]
+crons = []

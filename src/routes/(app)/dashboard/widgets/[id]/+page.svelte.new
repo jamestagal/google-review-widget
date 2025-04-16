@@ -1,0 +1,540 @@
+<script lang="ts">
+    import { page } from '$app/stores';
+    import { goto } from '$app/navigation';
+    import DashboardShell from '../../../components/dashboard-shell.svelte';
+    import { Button } from '$lib/components/ui/button';
+    import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '$lib/components/ui/card';
+    import { Input } from '$lib/components/ui/input';
+    import { Label } from '$lib/components/ui/label';
+    import { RadioGroup, RadioGroupItem } from '$lib/components/ui/radio-group';
+    import * as Select from '$lib/components/ui/select';
+    import { Textarea } from '$lib/components/ui/textarea';
+    import { Switch } from '$lib/components/ui/switch';
+    import { Slider } from '$lib/components/ui/slider';
+    import * as Separator from '$lib/components/ui/separator';
+    import { Clipboard, ArrowLeft, Trash2 } from 'lucide-svelte';
+    import { Toaster, toast } from 'svelte-sonner';
+    import { onMount } from 'svelte';
+    import { createBrowserClient } from '@supabase/ssr';
+    import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+    
+    // Get widget ID from URL parameter
+    export let data;
+    export let isModal = false;
+    const widgetId = $page.params.id;
+    
+    // Create Supabase client
+    const supabase = createBrowserClient(
+        PUBLIC_SUPABASE_URL,
+        PUBLIC_SUPABASE_ANON_KEY
+    );
+    
+    // Widget data
+    let isLoading = true;
+    let isSaving = false;
+    let showDeleteConfirm = false;
+    let validationErrors = { placeId: '' };
+    
+    // Widget project data
+    let widgetProject = {
+        id: '',
+        api_key: '',
+        place_id: '',
+        subscription_tier: 'free',
+        is_active: true,
+        allowed_domains: '*',
+        max_reviews: 5,
+        display_mode: 'carousel',
+        theme: 'light',
+        min_rating: 0,
+        show_ratings: true,
+        show_dates: true,
+        show_photos: true,
+        autoplay_speed: 5000
+    };
+    
+    // Widget configuration
+    let widgetConfig = {
+        placeId: '',
+        isActive: true,
+        maxReviews: 5,
+        displayMode: 'carousel',
+        theme: 'light',
+        minRating: 0,
+        showRatings: true,
+        showDates: true,
+        showPhotos: true,
+        autoplaySpeed: 5000,
+        allowedDomains: '*'
+    };
+    
+    // Subscription tiers
+    const subscriptionTiers = [
+        { id: 'free', label: 'Free', maxReviews: 5, requestLimit: '60', cacheDuration: '24 hour' },
+        { id: 'starter', label: 'Starter', maxReviews: 10, requestLimit: '120', cacheDuration: '12 hour' },
+        { id: 'pro', label: 'Professional', maxReviews: 25, requestLimit: '300', cacheDuration: '6 hour' },
+        { id: 'business', label: 'Business', maxReviews: 50, requestLimit: '600', cacheDuration: '1 hour' }
+    ];
+    
+    let selectedTier = subscriptionTiers[0];
+    
+    // Bind values
+    let maxReviewsValue = 5;
+    let minRatingValue = 0;
+    
+    // Watch for changes to slider values
+    $: widgetConfig.maxReviews = maxReviewsValue;
+    $: widgetConfig.minRating = minRatingValue;
+    
+    // Generate embed code
+    $: embedCode = generateEmbedCode(widgetConfig, widgetProject.api_key);
+    
+    onMount(async () => {
+        try {
+            // In a real implementation, this would fetch from Supabase
+            // const { data, error } = await supabase.from('widget_api_keys').select('*').eq('id', widgetId).single();
+            
+            // Mock data for demonstration
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            widgetProject = {
+                id: widgetId,
+                api_key: 'gr_' + Math.random().toString(36).substring(2, 15),
+                place_id: 'ChIJN1t_tDeuEmsRUsoyG83frY4',
+                subscription_tier: 'free',
+                is_active: true,
+                allowed_domains: '*',
+                max_reviews: 5,
+                display_mode: 'carousel',
+                theme: 'light',
+                min_rating: 0,
+                show_ratings: true,
+                show_dates: true,
+                show_photos: true,
+                autoplay_speed: 5000
+            };
+            
+            // Set up widget configuration
+            widgetConfig = {
+                placeId: widgetProject.place_id,
+                isActive: widgetProject.is_active,
+                maxReviews: widgetProject.max_reviews,
+                displayMode: widgetProject.display_mode,
+                theme: widgetProject.theme,
+                minRating: widgetProject.min_rating,
+                showRatings: widgetProject.show_ratings,
+                showDates: widgetProject.show_dates,
+                showPhotos: widgetProject.show_photos,
+                autoplaySpeed: widgetProject.autoplay_speed,
+                allowedDomains: widgetProject.allowed_domains
+            };
+            
+            // Set up slider values
+            maxReviewsValue = widgetConfig.maxReviews;
+            minRatingValue = widgetConfig.minRating;
+            
+            // Set up subscription tier
+            selectedTier = subscriptionTiers.find(t => t.id === widgetProject.subscription_tier) || subscriptionTiers[0];
+            
+            isLoading = false;
+        } catch (error) {
+            console.error('Error fetching widget:', error);
+            toast.error('Failed to load widget');
+        }
+    });
+    
+    /**
+     * Generate embed code for the widget
+     */
+    function generateEmbedCode(config: WidgetPreviewConfig, apiKeyValue: string): string {
+        const attributes = [
+            `data-gr-place-id="${config.placeId}"`,
+            `data-gr-api-key="${apiKeyValue}"`
+        ];
+        
+        if (config.displayMode !== 'carousel') attributes.push(`data-gr-display-mode="${config.displayMode}"`);
+        if (config.theme !== 'light') attributes.push(`data-gr-theme="${config.theme}"`);
+        if (config.maxReviews !== 5) attributes.push(`data-gr-max-reviews="${config.maxReviews}"`);
+        if (config.minRating > 0) attributes.push(`data-gr-min-rating="${config.minRating}"`);
+        if (!config.showRatings) attributes.push(`data-gr-show-ratings="false"`);
+        if (!config.showDates) attributes.push(`data-gr-show-dates="false"`);
+        if (!config.showPhotos) attributes.push(`data-gr-show-photos="false"`);
+        if (config.autoplaySpeed !== 5000) attributes.push(`data-gr-autoplay-speed="${config.autoplaySpeed}"`);
+        
+        // Create the widget div
+        const widgetDiv = `<div class="gr-widget" ${attributes.join(' ')}></div>`;
+        
+        // Create the script tag parts
+        const s = 's'+'cript';
+        
+        // Combine everything
+        return `${widgetDiv}\n<${s} src="https://cdn.example.com/google-reviews-widget.min.js" async></${s}>`;
+    }
+    
+    /**
+     * Copy embed code to clipboard
+     */
+    function copyEmbedCode() {
+        navigator.clipboard.writeText(embedCode)
+            .then(() => {
+                toast.success('Embed code copied to clipboard');
+            })
+            .catch(() => {
+                toast.error('Failed to copy embed code');
+            });
+    }
+    
+    /**
+     * Validate the form before submission
+     */
+    function validateForm() {
+        const errors = { placeId: '' };
+        
+        if (!widgetConfig.placeId) {
+            errors.placeId = 'Google Place ID is required';
+        } else if (!/^Ch[A-Za-z0-9_-]{20,}$/.test(widgetConfig.placeId)) {
+            errors.placeId = 'Invalid Google Place ID format';
+        }
+        
+        validationErrors = errors;
+        return !Object.values(errors).some(error => error);
+    }
+    
+    /**
+     * Handle form submission
+     */
+    async function handleSubmit() {
+        if (!validateForm()) return;
+        
+        isSaving = true;
+        
+        try {
+            // In a real implementation, this would update in Supabase
+            // const { data, error } = await supabase.from('widget_api_keys').update({
+            //     place_id: widgetConfig.placeId,
+            //     subscription_tier: selectedTier.id,
+            //     is_active: widgetConfig.isActive,
+            //     max_reviews: widgetConfig.maxReviews,
+            //     custom_settings: {
+            //         displayMode: widgetConfig.displayMode,
+            //         theme: widgetConfig.theme,
+            //         minRating: widgetConfig.minRating,
+            //         showRatings: widgetConfig.showRatings,
+            //         showDates: widgetConfig.showDates,
+            //         showPhotos: widgetConfig.showPhotos,
+            //         autoplaySpeed: widgetConfig.autoplaySpeed
+            //     },
+            //     allowed_domains: widgetConfig.allowedDomains.split(',').map(d => d.trim())
+            // }).eq('id', widgetId);
+            
+            // Mock a successful response
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            toast.success('Widget updated successfully');
+        } catch (error) {
+            console.error('Error updating widget:', error);
+            toast.error('Failed to update widget');
+        } finally {
+            isSaving = false;
+        }
+    }
+    
+    /**
+     * Delete the widget
+     */
+    async function deleteWidget() {
+        try {
+            // In a real implementation, this would delete from Supabase
+            // const { error } = await supabase.from('widget_api_keys').delete().eq('id', widgetId);
+            
+            // Mock a successful response
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            toast.success('Widget deleted successfully');
+            goto('/dashboard/widgets');
+        } catch (error) {
+            console.error('Error deleting widget:', error);
+            toast.error('Failed to delete widget');
+        }
+    }
+</script>
+
+<svelte:head>
+    <title>Edit Widget - Google Reviews Widget</title>
+</svelte:head>
+
+<!-- Content for both modal and non-modal views -->
+<div class="widget-editor {isModal ? 'modal-version' : 'page-version'}">
+    {#if !isModal}
+    <DashboardShell showBreadcrumbs={false}>
+    {/if}
+        <div class="flex items-center mb-4">
+            <button 
+                type="button" 
+                on:click={() => history.back()} 
+                class="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground mr-2"
+            >
+                <ArrowLeft class="h-4 w-4 mr-1" />
+                Back
+            </button>
+            <h2 class="text-3xl font-bold tracking-tight">Edit Widget</h2>
+        </div>
+        
+        {#if isLoading}
+            <div class="flex justify-center p-8">
+                <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+        {:else}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Configuration Form -->
+                <div class="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Widget Configuration</CardTitle>
+                            <CardDescription>
+                                Update your widget settings and configuration.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+                                <div class="space-y-2">
+                                    <Label for="api-key">API Key</Label>
+                                    <Input 
+                                        id="api-key"
+                                        value={widgetProject.api_key}
+                                        readonly
+                                    />
+                                    <div class="flex items-center">
+                                        <Switch id="is-active" bind:checked={widgetConfig.isActive} />
+                                        <Label for="is-active" class="ml-2">Active</Label>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <Label for="place-id">Google Place ID <span class="text-red-500">*</span></Label>
+                                    <Input 
+                                        id="place-id"
+                                        bind:value={widgetConfig.placeId}
+                                        class={validationErrors.placeId ? 'border-red-500' : ''}
+                                    />
+                                    {#if validationErrors.placeId}
+                                        <p class="text-red-500 text-sm">{validationErrors.placeId}</p>
+                                    {/if}
+                                    <p class="text-sm text-muted-foreground">
+                                        <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" 
+                                           target="_blank" 
+                                           class="underline">
+                                            Find your Place ID
+                                        </a>
+                                    </p>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <Label for="subscription-tier">Subscription Tier</Label>
+                                    <Select.Root 
+                                        bind:value={selectedTier} 
+                                        onSelectedChange={() => selectedTier = subscriptionTiers.find(t => t.id === selectedTier.id) || subscriptionTiers[0]}
+                                    >
+                                        <Select.Trigger id="subscription-tier" class="w-full">
+                                            <Select.Value placeholder="Select subscription tier" />
+                                        </Select.Trigger>
+                                        <Select.Content>
+                                            {#each subscriptionTiers as tier}
+                                                <Select.Item value={tier}>{tier.label}</Select.Item>
+                                            {/each}
+                                        </Select.Content>
+                                    </Select.Root>
+                                    <p class="text-sm text-muted-foreground">
+                                        {selectedTier.label}: Up to {selectedTier.maxReviews} reviews, 
+                                        {selectedTier.requestLimit} requests/min, 
+                                        {selectedTier.cacheDuration} cache
+                                    </p>
+                                </div>
+                                
+                                <Separator.Root />
+                                
+                                <div class="space-y-2">
+                                    <Label for="display-mode">Display Mode</Label>
+                                    <Select.Root bind:value={widgetConfig.displayMode}>
+                                        <Select.Trigger id="display-mode" class="w-full">
+                                            <Select.Value placeholder="How to display reviews" />
+                                        </Select.Trigger>
+                                        <Select.Content>
+                                            <Select.Item value="carousel">Carousel</Select.Item>
+                                            <Select.Item value="grid">Grid</Select.Item>
+                                            <Select.Item value="list">List</Select.Item>
+                                        </Select.Content>
+                                    </Select.Root>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <Label for="theme">Theme</Label>
+                                    <RadioGroup bind:value={widgetConfig.theme} class="flex gap-4">
+                                        <div class="flex items-center space-x-2">
+                                            <RadioGroupItem value="light" id="theme-light" />
+                                            <Label for="theme-light">Light</Label>
+                                        </div>
+                                        <div class="flex items-center space-x-2">
+                                            <RadioGroupItem value="dark" id="theme-dark" />
+                                            <Label for="theme-dark">Dark</Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <Label>Max Reviews ({widgetConfig.maxReviews})</Label>
+                                    <Slider 
+                                        min={1} 
+                                        max={selectedTier.maxReviews} 
+                                        step={1}
+                                        bind:value={maxReviewsValue}
+                                    />
+                                    <p class="text-sm text-muted-foreground">
+                                        Maximum number of reviews to display (limit: {selectedTier.maxReviews} for {selectedTier.label} tier)
+                                    </p>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <Label>Minimum Rating ({widgetConfig.minRating} stars)</Label>
+                                    <Slider 
+                                        min={0} 
+                                        max={5} 
+                                        step={1}
+                                        bind:value={minRatingValue}
+                                    />
+                                    <p class="text-sm text-muted-foreground">
+                                        Only show reviews with at least this rating (0 = show all)
+                                    </p>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div class="flex items-center space-x-2">
+                                        <input 
+                                            type="checkbox" 
+                                            id="show-ratings" 
+                                            bind:checked={widgetConfig.showRatings}
+                                            class="form-checkbox h-4 w-4"
+                                        />
+                                        <Label for="show-ratings">Show Ratings</Label>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input 
+                                            type="checkbox" 
+                                            id="show-dates" 
+                                            bind:checked={widgetConfig.showDates}
+                                            class="form-checkbox h-4 w-4"
+                                        />
+                                        <Label for="show-dates">Show Dates</Label>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input 
+                                            type="checkbox" 
+                                            id="show-photos" 
+                                            bind:checked={widgetConfig.showPhotos}
+                                            class="form-checkbox h-4 w-4"
+                                        />
+                                        <Label for="show-photos">Show Photos</Label>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <Label for="allowed-domains">Allowed Domains</Label>
+                                    <Textarea 
+                                        id="allowed-domains" 
+                                        bind:value={widgetConfig.allowedDomains}
+                                        rows="2"
+                                    />
+                                    <p class="text-sm text-muted-foreground">
+                                        Enter domains where this widget can be used (comma separated). 
+                                        Use * for any domain.
+                                    </p>
+                                </div>
+                            </form>
+                        </CardContent>
+                        <CardFooter class="flex justify-between gap-2">
+                            <Button variant="outline" on:click={() => showDeleteConfirm = true} class="text-red-500 hover:text-red-700">
+                                <Trash2 class="mr-2 h-4 w-4" />
+                                Delete
+                            </Button>
+                            
+                            <Button on:click={handleSubmit} disabled={isSaving}>
+                                {#if isSaving}
+                                    <div class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                    Saving...
+                                {:else}
+                                    Save Changes
+                                {/if}
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Embed Code</CardTitle>
+                            <CardDescription>
+                                Copy this code and paste it into your website where you want the widget to appear.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="relative">
+                                <pre class="p-4 bg-muted rounded-md overflow-x-auto text-sm">{embedCode}</pre>
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    on:click={copyEmbedCode}
+                                    class="absolute top-2 right-2 bg-background"
+                                >
+                                    <Clipboard class="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                
+                <!-- Live Preview -->
+                <div>
+                    <Card class="sticky top-4">
+                        <CardHeader>
+                            <CardTitle>Preview</CardTitle>
+                            <CardDescription>
+                                This is how your widget will look with the current settings.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="border rounded-lg p-4 {widgetConfig.theme === 'dark' ? 'bg-gray-800 text-white' : 'bg-white'}">
+                                <div class="text-center">
+                                    <h3 class="text-lg font-semibold">Widget Preview</h3>
+                                    <p class="text-sm text-muted-foreground">
+                                        Preview functionality will be added soon.
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        {/if}
+        
+        <!-- Delete Confirmation Modal -->
+        {#if showDeleteConfirm}
+            <div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                <div class="bg-card rounded-lg shadow-lg p-6 max-w-md w-full">
+                    <h3 class="text-xl font-bold mb-4">Delete Widget</h3>
+                    <p class="mb-6">Are you sure you want to delete this widget? This action cannot be undone.</p>
+                    <div class="flex justify-end gap-2">
+                        <Button variant="outline" on:click={() => showDeleteConfirm = false}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" on:click={deleteWidget}>
+                            Delete
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        {/if}
+    {#if !isModal}
+    </DashboardShell>
+    {/if}
+</div>
+
+<Toaster />

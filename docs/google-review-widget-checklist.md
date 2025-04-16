@@ -1,0 +1,219 @@
+# Google Reviews Widget – Project Todo Checklist
+
+## Cloudflare Deployment Setup
+
+- [x] **Initial Project Setup** – Set up SvelteKit SaaS Kit boilerplate and repository #infra #frontend
+  - [x] Initialize project with SaaS Kit (SvelteKit) and commit to version control #infra #frontend
+  - [x] Integrate Tailwind CSS and shadcn-svelte UI components into the project #frontend
+  - [x] Configure Supabase connection (URL, service key) for Auth and Database #infra #db
+  - [x] Set up Stripe keys and webhooks for billing (using SaaS Kit integration) #infra #security
+- [ ] **Cloudflare Pages Deployment** – Deploy the SvelteKit app to Cloudflare Pages #infra #cloudflare
+  - [ ] Create a Cloudflare Pages project and connect the Git repository #infra #cloudflare
+  - [ ] Add environment variables (Supabase keys, Stripe keys, etc.) in Pages settings #infra #cloudflare #security
+  - [ ] Configure custom domain (e.g. **googlereviews.app**) for the Pages deployment #infra #cloudflare
+- [ ] **Cloudflare Worker & KV Setup** – Prepare backend infrastructure on Cloudflare #infra #cloudflare
+  - [ ] Create a Cloudflare Worker for the reviews API (via Wrangler or Cloudflare Pages Functions) #api #cloudflare
+  - [ ] Create a Cloudflare KV namespace for caching Google reviews data #infra #cloudflare #db
+  - [ ] Bind the KV namespace to the Cloudflare Worker environment (for read/write access) #infra #cloudflare
+  - [ ] Securely store the Google Places API key in Cloudflare Workers KV or secrets (not exposed publicly) #security #cloudflare
+  - [ ] Implement basic KV read/write in the Worker (for testing connectivity) #api #cloudflare #test
+- [ ] **Cloudflare R2 (Object Storage)** – Set up media storage for images and backups #infra #cloudflare
+  - [ ] Create a Cloudflare R2 bucket for media (business logos, reviewer avatars, etc.) #infra #cloudflare
+  - [ ] Integrate R2 SDK/API in the app for uploading or retrieving images as needed #infra #cloudflare
+  - [ ] Set appropriate access policies for R2 (private buckets, signed URLs if needed) #security #cloudflare
+- [ ] **DNS & CDN Configuration** – Prepare content delivery and network settings #infra #cloudflare
+  - [ ] Ensure DNS records for the custom domain point to Cloudflare Pages (CNAME or A records setup) #infra #cloudflare
+  - [ ] Verify HTTPS/SSL is active for the custom domain (Cloudflare auto SSL) #security #cloudflare
+  - [ ] Set caching rules if needed for static assets (widget JS) on Cloudflare CDN #performance #cloudflare
+
+## MVP Widget System
+
+- [ ] **Google Reviews API Integration** – Cloudflare Worker to fetch and cache reviews #api #cloudflare
+  - [ ] Implement a secure API endpoint (Cloudflare Worker) to retrieve Google Business reviews by Place ID #api #cloudflare
+  - [ ] Use the Google Places API (Place Details) within the Worker to fetch review data (server-side) #api #cloudflare
+  - [ ] Parse and format the Google API response to a simplified JSON (only necessary fields) #api #cloudflare
+  - [ ] Implement caching: on each fetch, store the formatted review data in Cloudflare KV with a TTL #api #db #cloudflare
+  - [ ] On subsequent requests, serve data from KV cache if available (to reduce external API calls) #api #db #cloudflare
+  - [ ] Apply rate limiting on the Worker endpoint to prevent abuse and stay within Google API quotas #security #cloudflare
+  - [ ] Hide the Google API key: ensure all calls go through the Worker (no key in frontend code) #security #api
+  - [ ] Return appropriate errors or fallback data if Google API call fails (use cached data if possible) #api #cloudflare
+- [ ] **Widget Loader Script** – Develop the client-side widget script for embedding #frontend #api
+  - [ ] Create a global `GoogleReviews` JS object with an `init()` method to initialize the widget #frontend
+  - [ ] Develop the lightweight widget loader (`widget.js`) that the snippet will load (target <5KB gzipped) #frontend #performance
+  - [ ] Implement asynchronous loading: snippet sets `window.__gr` config and loads `widget.js` which auto-inits #frontend
+  - [ ] In the widget script, read configuration (widget ID, theme, etc.) from `window.__gr` or data-attributes #frontend
+  - [ ] Fetch review data from the Cloudflare Worker API endpoint using the widget’s public API key/ID #frontend #api
+  - [ ] Render the reviews on the page in a basic layout (MVP format, e.g. a simple carousel or list) #frontend
+  - [ ] Apply basic styles and CSS (using an isolated scope or shadow DOM to avoid conflicts) #frontend
+  - [ ] Ensure the widget is responsive (works on various screen sizes) and doesn’t block page load #frontend #performance
+  - [ ] Support both installation methods: via JS snippet (window.\_\_gr config) and via HTML attributes on a `div` #frontend
+  - [ ] Test the widget script by embedding it on a sample page and verifying reviews load correctly #test #frontend #api
+- [ ] **Admin Dashboard (MVP)** – Extend SaaS Kit app for widget management #frontend #db
+  - [ ] Implement user authentication flows (leverage Supabase Auth from SaaS Kit for login/signup) #frontend #security
+  - [ ] Create a “Business Profile” entity: allow user to add their Google Business Place ID (or search by name) #frontend #db
+  - [ ] Save Business Profile data to Supabase (Place ID, business name, address, etc.) #backend #db
+  - [ ] Create a “Widget Project” entity for each embeddable widget instance/configuration #frontend #db
+  - [ ] Design a form to create a new Widget Project: select a Business Profile and basic settings (e.g. theme, layout choice) #frontend #db #LLM
+  - [ ] Generate a unique Widget API Key/ID for each new widget project (for use in embed code) #backend #security
+  - [ ] Save widget configuration to database (associate with user account and business profile) #backend #db
+  - [ ] Display the embed code (JavaScript snippet and/or `<div>` code with data-attributes) for the user to copy #frontend
+  - [ ] List all existing widgets the user has created, with basic info (name, site, etc.) #frontend #db
+  - [ ] Implement view for each widget project to preview how it will look (simple live preview using the actual widget script) #frontend
+  - [ ] Show usage statistics for each widget (e.g. views this month) on the dashboard main page #frontend #db
+  - [ ] Integrate Stripe billing UI if needed for upgrading plans (or link to Stripe Customer Portal) #frontend #api
+- [ ] **Basic Analytics & Quotas** – Initial tracking of widget usage and simple analytics #api #db
+  - [ ] Log each widget load event in the database or analytics service (widget ID, timestamp, etc.) #api #db
+  - [ ] Set up a daily job or function to aggregate usage per widget per day (e.g. store daily counts in Supabase) #db #infra
+  - [ ] Display simple analytics in dashboard: e.g. total views this month vs allowed quota, average rating of reviews #frontend #db
+  - [ ] Enforce basic quotas: if a widget exceeds its plan’s view limit, flag it or temporarily disable loading #security #db
+  - [ ] Add an in-widget notice or fallback (e.g. “Upgrade required” banner) if free tier quota is exceeded #frontend #security
+  - [ ] Ensure the free tier widgets show the “Powered by GoogleReviews (YourBrand)” branding on the widget #frontend
+  - [ ] Hide or remove branding for paid tier widgets (no branding for Basic and above plans) #frontend
+  - [ ] Verify that analytics tracking does not noticeably slow down the widget load (use asynchronous logging) #performance #test
+
+## Advanced Features and Enhancements
+
+- [ ] **Additional Widget Layouts** – Develop multiple review display formats beyond MVP #frontend
+  - [ ] Implement **Carousel** layout (scrolling horizontal slider for reviews) #frontend
+  - [ ] Implement **List** layout (vertical list of reviews) #frontend
+  - [ ] Implement **Grid** layout (responsive grid of review cards) #frontend
+  - [ ] Implement **Slider** / full-width single review slider layout #frontend
+  - [ ] Implement **Floating Badge** layout (compact badge that can be clicked to expand reviews) #frontend
+  - [ ] Implement **Masonry/Wall** layout (masonry grid for a “review wall”) #frontend
+  - [ ] Provide options to switch between layouts easily in the embed code or via dashboard #frontend #api
+- [ ] **Advanced Customization Options** – Allow extensive style and content configuration #frontend
+  - [ ] Add theme support: light and dark themes, with automatic switch based on site if configured #frontend
+  - [ ] Allow custom color settings (e.g. star color, text color, background color) #frontend
+  - [ ] Add controls for font family and text size customization #frontend
+  - [ ] Enable custom widget dimensions (width/height) and responsive behavior settings #frontend
+  - [ ] Provide toggle settings to show/hide elements (reviewer photo, review date, star icons, headers, etc.) #frontend
+  - [ ] Implement content filters: minimum rating filter, maximum review age filter #frontend #api
+  - [ ] Implement sorting options for reviews (e.g. newest first, highest rating first) #frontend #api
+  - [ ] Allow limiting the number of reviews displayed at once (and require “load more” for additional) #frontend #api
+  - [ ] Include a “Write a review” button linking to the business’s Google reviews page #frontend
+  - [ ] Ensure all customization options can be set via data-attributes or JS API calls as well as in dashboard #frontend #api
+- [ ] **Interactivity & UX Enhancements** – Make the widget more interactive and user-friendly #frontend
+  - [ ] Implement click-to-expand for truncated long reviews (expand/collapse review text on user click) #frontend
+  - [ ] Add navigation controls for carousel/slider layouts (previous/next arrows, pagination dots) #frontend
+  - [ ] Implement pagination or “Load more” button for list/grid layouts to handle many reviews #frontend #api
+  - [ ] Add lazy-loading: load additional reviews on scroll or on demand to improve performance #frontend #performance
+  - [ ] Include animations or transitions for review carousel sliding and expanding/collapsing reviews #frontend
+  - [ ] Ensure touch-friendly controls for mobile (swipe for carousel, etc.) #frontend #test
+  - [ ] Add event hooks (e.g. on review click, on widget loaded) for developers using the widget #frontend #api
+- [ ] **JavaScript API Methods** – Expose a JS API for runtime control of the widget #frontend #api
+  - [ ] Implement `GoogleReviews.call('show')` and `...('hide')` to programmatically show/hide the widget #frontend
+  - [ ] Implement `...('setDisplayFormat', format)` to change the layout on the fly (e.g. carousel to grid) #frontend
+  - [ ] Implement `...('filterReviews', {minRating, maxAge})` to apply filters dynamically #frontend #api
+  - [ ] Implement `...('sortReviews', order)` to change sort order (if data already loaded or via re-fetch) #frontend #api
+  - [ ] Implement `...('refreshData')` to force refresh the reviews (bypass cache, fetch new from API) #frontend #api
+  - [ ] Implement `...('setTheme', theme)` and `...('setColors', {...})` to adjust styling at runtime #frontend
+  - [ ] Implement `...('on', event, callback)` to register event handlers (e.g. on 'ready', on 'error') #frontend
+  - [ ] Document these JS API methods for developers in the docs site #frontend #documentation
+- [ ] **Advanced Analytics Dashboard** – Enhanced analytics and metrics for users #frontend #db
+  - [ ] Implement review trend charts (e.g. average rating over time) in the dashboard analytics page #frontend #db
+  - [ ] Show review volume over time (e.g. new reviews per week/month) #frontend #db
+  - [ ] Display rating distribution (pie or bar chart of 5-star vs 4-star counts, etc.) #frontend #db
+  - [ ] Include engagement metrics: widget views, interaction clicks (if tracked), CTR on “Write a review” #frontend #db
+  - [ ] Provide comparison or benchmarking if possible (e.g. against industry averages) #frontend #db
+  - [ ] Allow data export (CSV or JSON of reviews or analytics) #frontend #db
+  - [ ] Optimize analytics queries for performance (use indices or pre-aggregation as needed) #performance #db
+- [ ] **Multi-Profile & Team Features** – Support advanced use cases for power users #frontend #db
+  - [ ] Allow each user account to manage multiple Business Profiles (for multiple locations or clients) #frontend #db
+  - [ ] Implement UI for switching between multiple business profiles in the dashboard #frontend
+  - [ ] Allow creating multiple widget projects per user (per pricing tier limits) and group by profile #frontend #db
+  - [ ] Implement collaborator access: invite team members to a project with view/edit permissions #frontend #security
+  - [ ] Use role-based access control for team members (leverage SaaS Kit RBAC features) #security #db
+  - [ ] Provide audit logs or activity log for actions in the dashboard (optional, for enterprise transparency) #security #db
+- [ ] **Third-Party Integrations** – (Planned integrations for broader ecosystem support) #api #frontend
+  - [ ] Prepare integration hooks for CRM systems (e.g. Salesforce, HubSpot) to push reviews or stats #api #db
+  - [ ] Develop a Shopify app or plugin for easy embedding in Shopify sites #frontend #api
+  - [ ] Provide guides or plugins for popular platforms (WordPress/WooCommerce, Magento, etc.) #frontend #api
+  - [ ] Integrate widget events with Google Analytics (fire events or provide dataLayer info for tracking) #frontend #api
+  - [ ] Ensure subscription billing (Stripe) is fully integrated (automatic plan upgrade/downgrade handling) #api #security
+
+## Security & Compliance
+
+- [ ] **API Security & Rate Limiting** #security #cloudflare
+  - [ ] Enforce API authentication for the widget data endpoint (verify a valid widget ID/API key in requests) #security #api
+  - [ ] Implement per-key rate limiting on the Cloudflare Worker (to prevent excessive use by any single widget) #security #cloudflare
+  - [ ] Implement global rate limiting or quotas to protect against overall abuse or DDoS on the API #security #cloudflare
+  - [ ] Monitor Google Places API usage and throttle if approaching quota limits (fallback to cache if necessary) #security #api
+  - [ ] Regularly rotate or secure server-side API keys (Google Places API key rotation if needed) #security
+- [ ] **Data Protection** #security #compliance
+  - [ ] Ensure all traffic uses HTTPS (Cloudflare SSL) and all API calls are over TLS #security
+  - [ ] Encrypt sensitive data at rest in the database (if any – e.g., user info, tokens, using Supabase encryption or hashing) #security #db
+  - [ ] Do not store Google API credentials or tokens in client-side code or local storage #security #frontend
+  - [ ] Implement content security policy (CSP) and other headers on Cloudflare Pages to prevent XSS #security #frontend
+  - [ ] Validate and sanitize all inputs (Place IDs, profile names, etc.) on the server side to prevent injection #security #api
+- [ ] **Compliance (GDPR/CCPA)** #security #compliance
+  - [ ] Create a clear Privacy Policy detailing data usage (especially since Google reviews data is public, but user data is stored) #compliance #documentation #LLM
+  - [ ] Create Terms of Service for the widget usage and SaaS platform #compliance #documentation
+  - [ ] Implement a user data deletion process (allow users to delete their account and all associated data) #security #compliance
+  - [ ] Implement cookie consent banner if any tracking or non-essential cookies are used (check Supabase Auth uses) #compliance #frontend
+  - [ ] Add mechanisms for users to request their data or opt out (to comply with GDPR data access requests) #security #compliance
+- [ ] **Authentication & Account Security** #security
+  - [ ] Enforce strong password policies and checks (if not already handled by Supabase Auth) #security #frontend
+  - [ ] Enable two-factor authentication for user accounts (if supported by Supabase or custom build) #security #frontend
+  - [ ] Review OAuth provider integrations (Google/GitHub login via Supabase) for proper scopes and security #security
+  - [ ] Ensure secure session management (http-only cookies or secure storage of JWTs, short session duration) #security
+  - [ ] Restrict sensitive dashboard actions to authorized roles (use RBAC for admin vs user privileges) #security #frontend
+- [ ] **Robust Error Handling** #security #api
+  - [ ] Implement graceful fallbacks on widget: if data cannot load, show a friendly message or empty state #frontend
+  - [ ] Ensure the widget doesn’t break the host page if an error occurs (try-catch around rendering logic) #frontend
+  - [ ] Log errors and exceptions in the Cloudflare Worker (with console or a logging service) for later review #api #infra
+  - [ ] Surface error notifications in the dashboard if something fails (e.g., “Failed to fetch reviews, please check your API key or Google Place ID”) #frontend
+  - [ ] Implement global error boundary in SvelteKit app to catch and display dashboard errors gracefully #frontend
+  - [ ] Set up alerts for critical failures (e.g., if API calls are failing frequently, or high error rate) #infra #monitoring
+- [ ] **Security Audits & QA** #security #test
+  - [ ] Conduct a code security audit or review (check for common vulnerabilities in code) #security #LLM
+  - [ ] Perform penetration testing on the application (especially the API endpoints and auth flows) #security #test
+  - [ ] Fix any vulnerabilities or issues found in audits/testing before launch #security #test
+  - [ ] Verify compliance requirements are all met (run through a GDPR/CCPA compliance checklist) #security #compliance
+
+## Testing & Launch
+
+- [ ] **Unit Testing** – Write and run unit tests for all components #test
+  - [ ] Test Cloudflare Worker functions (simulate fetch, caching logic with KV in a test environment) #test #api
+  - [ ] Test SvelteKit server routes and APIs (e.g. widget creation, any server endpoints) #test #api
+  - [ ] Test Svelte components and store functions in the dashboard (form validation, state management) #test #frontend
+  - [ ] Test the widget frontend functions (e.g., does `GoogleReviews.init()` correctly render, do filters work) #test #frontend
+  - [ ] Automate these tests in CI/CD to run on each commit #test #infra
+- [ ] **Integration Testing** – End-to-end testing of user flows #test
+  - [ ] Simulate a user creating an account, adding a business profile, and generating a widget (ensure it flows without error) #test #frontend #api
+  - [ ] Test embedding the widget on a dummy website page and verify it loads reviews and looks correct #test #frontend #api
+  - [ ] Test the upgrade process: free to paid plan conversion (if applicable) and ensure limits/branding update #test #frontend #api
+  - [ ] Test multi-profile and team features with multiple test accounts (sharing access, switching profiles) #test #frontend #db
+  - [ ] Perform cross-browser testing for the widget (Chrome, Firefox, Safari, Edge, mobile browsers) #test #frontend
+  - [ ] Verify responsive behavior on different device sizes for both widget and dashboard #test #frontend
+- [ ] **Performance Testing** #test #performance
+  - [ ] Conduct load testing on the Cloudflare Worker API (simulate high traffic to ensure low latency and stability) #test #api #cloudflare
+  - [ ] Measure Time to First Byte (TTFB) for widget data fetch under various conditions and optimize if above 100ms #performance #api
+  - [ ] Test the widget loading time on a variety of network speeds (ensure total load ~1-2s on average connections) #test #performance
+  - [ ] Verify the widget script size is within the 5KB gzipped target; if not, optimize or compress further #performance #frontend
+  - [ ] Monitor client-side performance (CPU/memory impact) when the widget is running on a page #performance #frontend
+- [ ] **User Acceptance & Beta** #test #frontend
+  - [ ] Organize a beta test with a few users/businesses to integrate the widget on their sites #test #frontend
+  - [ ] Collect feedback on ease of installation, widget appearance, and any issues encountered #test #frontend
+  - [ ] Fix bugs or UX issues discovered during beta testing #frontend #api #test
+  - [ ] Incorporate minor feature requests or improvements from beta if feasible before launch #frontend #api
+- [ ] **Documentation & Guides** #documentation #frontend
+  - [ ] Write comprehensive documentation for users: how to embed the widget, all configuration options, etc. #documentation #frontend #LLM
+  - [ ] Provide code examples for different installation methods (script snippet vs HTML attributes) #documentation #frontend
+  - [ ] Write an FAQ and troubleshooting guide (e.g., what to do if reviews don’t show up) #documentation #LLM
+  - [ ] Create API documentation for any JS APIs or integration hooks provided #documentation #frontend
+  - [ ] Prepare internal developer docs for maintaining the project (architecture overview, how to deploy, etc.) #documentation
+  - [ ] Ensure Privacy Policy and Terms of Service are finalized and accessible on the site #compliance #documentation
+- [ ] **Launch Preparation** #infra #marketing
+  - [ ] Set up production environment configurations (double-check all env vars for production accounts/keys) #infra #cloudflare
+  - [ ] Do a final run-through of the entire system on a staging environment (full end-to-end test in production-like setting) #test #infra
+  - [ ] Finalize pricing tiers enforcement and test that limits and features correspond to each tier correctly #test #db
+  - [ ] Migrate any necessary data from testing (or reset caches, reset test accounts) for a clean production start #db #infra
+  - [ ] Update the marketing website (or landing page) with the Google Reviews Widget information, screenshots, and pricing #frontend #marketing #LLM
+  - [ ] Prepare announcement materials (blog post, social media, email newsletter about the new product) #marketing #LLM
+- [ ] **Official Launch** #launch #infra
+  - [ ] Deploy the latest stable version to production (Cloudflare Pages and Worker) #infra #cloudflare
+  - [ ] Enable any monitoring services or analytics for the production launch (uptime monitoring, error tracking) #infra #monitoring
+  - [ ] Announce the launch publicly and begin onboarding users to the platform #marketing
+  - [ ] Closely monitor system performance and error logs during initial launch days #monitoring #performance
+  - [ ] Provide support channels for early users to report issues or ask questions (email, chat, etc.) #support #frontend
+  - [ ] Collect and prioritize any post-launch issues or feature requests for the next iteration #frontend #api #planning

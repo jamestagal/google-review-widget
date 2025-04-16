@@ -1,0 +1,17 @@
+# Ignore node modules
+
+node_modules/
+
+# Ignore build directories
+
+dist/
+build/
+
+# Ignore specific file types
+
+_.log
+_.lock
+
+# Ignore specific directories
+
+.github/

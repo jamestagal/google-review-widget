@@ -1,0 +1,169 @@
+<script lang="ts">
+    import { goto } from '$app/navigation';
+    import { page } from '$app/stores';
+    import { enhance } from '$app/forms';
+    import { onMount } from 'svelte';
+    import DashboardShell from '../../../components/dashboard-shell.svelte';
+    import * as Button from '$lib/components/ui/button';
+    import * as Card from '$lib/components/ui/card';
+    import * as Input from '$lib/components/ui/input';
+    import * as Label from '$lib/components/ui/label';
+    import * as Textarea from '$lib/components/ui/textarea';
+    import { AlertCircle, ArrowLeft } from 'lucide-svelte';
+    
+    // Get data from the parent load function
+    export let data;
+    const { supabase } = data;
+    
+    // Authentication states
+    let user = null;
+    let loading = true;
+    let error = null;
+    let formError = '';
+    
+    // Business profile data - simple version
+    let businessProfile = {
+        googlePlaceId: '',
+        businessName: '',
+        businessAddress: ''
+    };
+    
+    // Use secure authentication method (getUser instead of getSession)
+    onMount(async () => {
+        try {
+            // Use getUser() for secure authentication
+            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            user = authUser;
+            
+            console.log('User authenticated successfully:', user?.email);
+        } catch (e) {
+            error = e;
+            console.error('Authentication error:', e);
+        } finally {
+            loading = false;
+        }
+    });
+    
+    function handleSubmit(event) {
+        // Simple form validation
+        if (!businessProfile.googlePlaceId) {
+            formError = 'Google Place ID is required';
+            return;
+        }
+        
+        if (!businessProfile.businessName) {
+            formError = 'Business name is required';
+            return;
+        }
+        
+        formError = '';
+        // Form would be submitted here
+    }
+</script>
+
+{#if loading}
+<DashboardShell>
+    <div class="flex justify-center items-center p-8">
+        <div class="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+        <span class="ml-3">Loading your account information...</span>
+    </div>
+</DashboardShell>
+{:else if error || !user}
+<DashboardShell>
+    <div class="bg-red-100 border border-red-300 text-red-700 p-4 rounded-md">
+        <h3 class="font-semibold">Authentication Required</h3>
+        <p>You need to be logged in to create a widget. <a href="/login" class="text-blue-600 underline">Sign in</a></p>
+        {#if error}
+            <p class="text-sm mt-2">Error details: {error.message}</p>
+        {/if}
+    </div>
+</DashboardShell>
+{:else}
+<DashboardShell>
+    <!-- Debug output to verify user authentication -->
+    <pre class="text-xs bg-gray-100 p-2 my-2 rounded">Debug: User authenticated as {user.email}</pre>
+    
+    <div class="flex items-center mb-4">
+        <Button.Root variant="ghost" href="/dashboard/widgets" class="mr-2">
+            <ArrowLeft class="h-4 w-4 mr-1" />
+            Back
+        </Button.Root>
+        <h1 class="text-2xl font-bold">Create New Widget</h1>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Configuration Form -->
+        <div class="space-y-6">
+            <Card.Root>
+                <Card.Header>
+                    <Card.Title>Widget Configuration</Card.Title>
+                    <Card.Description>
+                        Enter your Google Place ID and customize how your reviews will appear.
+                    </Card.Description>
+                </Card.Header>
+                <Card.Content>
+                    {#if formError}
+                        <div class="bg-red-100 text-red-700 p-2 rounded mb-4">
+                            {formError}
+                        </div>
+                    {/if}
+                    
+                    <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+                        <div class="space-y-2">
+                            <Label.Root for="place-id">Google Place ID <span class="text-red-500">*</span></Label.Root>
+                            <Input.Root 
+                                id="place-id"
+                                bind:value={businessProfile.googlePlaceId}
+                                placeholder="Enter your Google Place ID"
+                            />
+                            <div class="text-sm text-gray-500">
+                                You can find your Place ID by searching for your business on
+                                <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" class="text-blue-600 hover:underline">Google's Place ID Finder</a>.
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label.Root for="business-name">Business Name <span class="text-red-500">*</span></Label.Root>
+                            <Input.Root 
+                                id="business-name"
+                                bind:value={businessProfile.businessName}
+                                placeholder="Enter your business name"
+                            />
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label.Root for="business-address">Business Address (Optional)</Label.Root>
+                            <Textarea.Root 
+                                id="business-address" 
+                                bind:value={businessProfile.businessAddress}
+                                placeholder="Enter your business address (optional)"
+                            />
+                        </div>
+
+                        <Button.Root type="submit">Create Widget</Button.Root>
+                    </form>
+                </Card.Content>
+            </Card.Root>
+        </div>
+        
+        <!-- Live Preview -->
+        <div>
+            <Card.Root>
+                <Card.Header>
+                    <Card.Title>Live Preview</Card.Title>
+                    <Card.Description>Preview will appear here when implemented</Card.Description>
+                </Card.Header>
+                <Card.Content>
+                    <div class="border rounded-md p-4 min-h-[200px] flex items-center justify-center">
+                        <div class="text-center">
+                            <AlertCircle class="h-6 w-6 mx-auto mb-2" />
+                            <p>Widget preview will be shown here</p>
+                        </div>
+                    </div>
+                </Card.Content>
+            </Card.Root>
+        </div>
+    </div>
+</DashboardShell>
+{/if}

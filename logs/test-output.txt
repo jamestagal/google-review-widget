@@ -1,0 +1,58 @@
+
+> @kizivat/saas-kit@0.0.1 test
+> vitest run --silent src/tests/google-reviews-api.test.js
+
+
+ RUN  v2.0.5 /Users/benjaminwaller/Projects/AI/google-review-widget
+
+ ❯ src/tests/google-reviews-api.test.js  (3 tests | 2 failed) 266ms
+   × Google Reviews API Test > should return error for missing place ID
+     → expected 500 to be 400 // Object.is equality
+   × Google Reviews API Test > should retrieve cached reviews
+     → expected 500 to be 200 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/tests/google-reviews-api.test.js > Google Reviews API Test > should return error for missing place ID
+AssertionError: expected 500 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 500
+
+ ❯ src/tests/google-reviews-api.test.js:48:33
+     46|         
+     47|         // Should return a 400 Bad Request
+     48|         expect(response.status).toBe(400);
+       |                                 ^
+     49|         
+     50|         /** @type {any} */
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/tests/google-reviews-api.test.js > Google Reviews API Test > should retrieve cached reviews
+AssertionError: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ src/tests/google-reviews-api.test.js:141:33
+    139|         
+    140|         // Verify it returns cached data
+    141|         expect(response.status).toBe(200);
+       |                                 ^
+    142|         
+    143|         /** @type {any} */
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  22:47:56
+   Duration  2.64s (transform 1.52s, setup 0ms, collect 2.03s, tests 266ms, environment 0ms, prepare 57ms)
+
