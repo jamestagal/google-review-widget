@@ -3,6 +3,17 @@ name = "google-reviews-widget"
 main = "build/index.js" # This will be overridden by Cloudflare Pages deployment
 compatibility_date = "2023-10-30"
 
+# Pages configuration
+[build]
+command = "npm run build"
+[build.upload]
+format = "service-worker"
+
+# Pages build output directory
+[site]
+bucket = "build"
+entry-point = "."
+
 # KV Namespace for caching review data
 # For local development, this creates a local KV namespace
 # For production, you'll need to replace the id with your actual KV namespace ID
@@ -15,6 +26,7 @@ preview_id = "local-dev-reviews-kv-id" # Replace with actual preview KV ID
 [vars]
 # Use for non-secret configuration that can be in git
 # Example: APP_ENV = "development"
+NODE_VERSION = "20"
 
 # Add development specific settings
 [env.development]
