@@ -4,23 +4,10 @@
 [build]
 command = "npm run build"
 destination = "build"
-node_compat = true  # Enable Node.js compatibility
 
 # Configure the environment variables needed for our deployment
-# The actual values will be set in the Cloudflare Dashboard
 [env.production]
 NODE_VERSION = "20"  # Use Node.js 20 LTS
 
-# Configure the KV namespace binding
-[[kv_namespaces]]
-binding = "REVIEWS_KV"
-
-# Cloudflare Pages Functions configuration
-[functions]
-directory = "functions"  # Path where the workers will be located
-include = ["api/**", "_middleware.js"]  # Paths to include in the build
-
-# Configure routes
-[[routes]]
-pattern = "/api/*"
-script = "api"
+[env.preview]
+NODE_VERSION = "20"  # Use Node.js 20 LTS
