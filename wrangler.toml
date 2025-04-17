@@ -1,0 +1,11 @@
+name = "google-review-widget"
+compatibility_date = "2023-08-01"
+
+# Configure KV namespace for caching
+kv_namespaces = [
+  { binding = "REVIEWS_KV", id = "your-kv-id-goes-here", preview_id = "your-preview-id-goes-here" }
+]
+
+# Specify the build output directory
+[site]
+bucket = ".svelte-kit/cloudflare"
