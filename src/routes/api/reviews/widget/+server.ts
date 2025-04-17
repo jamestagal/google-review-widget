@@ -1,12 +1,14 @@
 // src/routes/api/reviews/widget/+server.ts
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { PRIVATE_GOOGLE_API_KEY } from '$env/static/private';
 import type { Database } from '$lib/types/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PostgrestError } from '@supabase/supabase-js';
 import type { WidgetProject, WidgetApiKey, ReviewCache } from '$lib/types/widget.types';
 import { WidgetTables } from '$lib/types/widget.types';
+
+// Import Google API key with fallback for build process
+const GOOGLE_API_KEY = process.env.PRIVATE_GOOGLE_API_KEY || 'AIzaSyCnTrmaeDEjz-keYN1-FD2K43kCrIe5SuI';
 
 // Set up CORS headers for widget API endpoint
 function setCorsHeaders(response: Response): Response {
@@ -176,12 +178,12 @@ export const GET: RequestHandler = async ({ url, request, locals }) => {
       const apiUrl = new URL('https://maps.googleapis.com/maps/api/place/details/json');
       apiUrl.searchParams.append('place_id', placeId);
       apiUrl.searchParams.append('fields', 'name,rating,user_ratings_total,reviews,formatted_address');
-      apiUrl.searchParams.append('key', PRIVATE_GOOGLE_API_KEY);
+      apiUrl.searchParams.append('key', GOOGLE_API_KEY);
       apiUrl.searchParams.append('reviews_sort', 'most_relevant');
       
       try {
-        console.log('Fetching Google Places data with API key:', PRIVATE_GOOGLE_API_KEY.substring(0, 5) + '...');
-        console.log('Request URL (without key):', apiUrl.toString().replace(PRIVATE_GOOGLE_API_KEY, '[API_KEY_HIDDEN]'));
+        console.log('Fetching Google Places data with API key:', GOOGLE_API_KEY.substring(0, 5) + '...');
+        console.log('Request URL (without key):', apiUrl.toString().replace(GOOGLE_API_KEY, '[API_KEY_HIDDEN]'));
         
         const placesApiResponse = await fetch(apiUrl.toString());
         console.log('Google Places API response status:', placesApiResponse.status);

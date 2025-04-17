@@ -1,7 +1,9 @@
 import { json } from '@sveltejs/kit';
-import { PRIVATE_GOOGLE_API_KEY } from '$env/static/private';
 import { createServerClient } from '$lib/utils/supabase/server';
 import type { RequestHandler } from './$types';
+
+// Import Google API key with fallback for build process
+const GOOGLE_API_KEY = process.env.PRIVATE_GOOGLE_API_KEY || 'AIzaSyCnTrmaeDEjz-keYN1-FD2K43kCrIe5SuI';
 
 /**
  * API endpoint to search for places using Google Places API
@@ -10,11 +12,10 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async (event) => {
     try {
         // Verify API key is available
-        if (!PRIVATE_GOOGLE_API_KEY) {
+        if (!GOOGLE_API_KEY) {
             console.error('Google Places API key is not configured');
             return json({ 
-                error: 'Server configuration error: Google Places API key is missing', 
-                details: 'Please add PRIVATE_GOOGLE_API_KEY to your .env.local file'
+                error: 'Server configuration error: Google Places API key is missing'
             }, { status: 500 });
         }
         
@@ -42,9 +43,9 @@ export const GET: RequestHandler = async (event) => {
             // Make the request to Google Places API
             const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
                 query
-            )}&types=establishment&key=${PRIVATE_GOOGLE_API_KEY}`;
+            )}&types=establishment&key=${GOOGLE_API_KEY}`;
             
-            console.log(`Calling Google Places API: ${url.replace(PRIVATE_GOOGLE_API_KEY, '[REDACTED]')}`);
+            console.log(`Calling Google Places API: ${url.replace(GOOGLE_API_KEY, '[REDACTED]')}`);
             
             const response = await fetch(url);
             
@@ -86,7 +87,7 @@ export const GET: RequestHandler = async (event) => {
                 // Get place details
                 const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${
                     prediction.place_id
-                }&fields=name,place_id,formatted_address,rating,user_ratings_total,photos&key=${PRIVATE_GOOGLE_API_KEY}`;
+                }&fields=name,place_id,formatted_address,rating,user_ratings_total,photos&key=${GOOGLE_API_KEY}`;
                 
                 const detailsResponse = await fetch(detailsUrl);
                 
