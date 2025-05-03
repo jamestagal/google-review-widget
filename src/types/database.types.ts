@@ -1,3 +1,5 @@
+
+
 export type Json =
   | string
   | number
@@ -7,33 +9,52 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      api_calls: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          ip_address: string | null
+          request_body: Json | null
+          response_code: number
+          updated_at: string
+          user_agent: string | null
+          widget_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          request_body?: Json | null
+          response_code: number
+          updated_at?: string
+          user_agent?: string | null
+          widget_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          request_body?: Json | null
+          response_code?: number
+          updated_at?: string
+          user_agent?: string | null
+          widget_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_calls_widget_id_fkey"
+            columns: ["widget_id"]
+            isOneToOne: false
+            referencedRelation: "widget_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_profiles: {
         Row: {
           business_address: string | null
@@ -251,7 +272,9 @@ export type Database = {
       }
       widget_projects: {
         Row: {
+          analytics: Json
           api_key: string
+          api_usage: number
           business_profile_id: string | null
           colors: Json
           created_at: string
@@ -260,14 +283,19 @@ export type Database = {
           filters: Json
           fonts: Json
           id: string
+          last_viewed_at: string | null
           name: string
+          rate_limit: number | null
           subscription_tier: string
           theme: string
           updated_at: string
           user_id: string | null
+          view_count: number
         }
         Insert: {
+          analytics?: Json
           api_key: string
+          api_usage?: number
           business_profile_id?: string | null
           colors?: Json
           created_at?: string
@@ -276,14 +304,19 @@ export type Database = {
           filters?: Json
           fonts?: Json
           id?: string
+          last_viewed_at?: string | null
           name: string
+          rate_limit?: number | null
           subscription_tier?: string
           theme?: string
           updated_at?: string
           user_id?: string | null
+          view_count?: number
         }
         Update: {
+          analytics?: Json
           api_key?: string
+          api_usage?: number
           business_profile_id?: string | null
           colors?: Json
           created_at?: string
@@ -292,11 +325,14 @@ export type Database = {
           filters?: Json
           fonts?: Json
           id?: string
+          last_viewed_at?: string | null
           name?: string
+          rate_limit?: number | null
           subscription_tier?: string
           theme?: string
           updated_at?: string
           user_id?: string | null
+          view_count?: number
         }
         Relationships: [
           {
@@ -542,13 +578,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       stripe_payment_mode: ["payment", "subscription"],
     },
   },
 } as const
-

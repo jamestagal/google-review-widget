@@ -1,22 +1,21 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { page } from '$app/stores';
   import DashboardShell from '../../../components/dashboard-shell.svelte';
   import { Toaster, toast } from 'svelte-sonner';
   import { createBrowserClient } from '@supabase/ssr';
   import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
-  import { ArrowLeft, Save, Copy, Trash2 } from 'lucide-svelte';
+  import { ArrowLeft, Save, Trash2 } from 'lucide-svelte';
   import * as Button from '$lib/components/ui/button';
   import * as Card from '$lib/components/ui/card';
   import * as Input from '$lib/components/ui/input';
   import * as Label from '$lib/components/ui/label';
   import * as Textarea from '$lib/components/ui/textarea';
-  import * as Separator from '$lib/components/ui/separator';
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Switch from '$lib/components/ui/switch';
   import { createWidgetStore } from '$lib/stores/widget-editor-store';
   import WidgetPreview from '../components/widget-preview.svelte';
+  import EmbedCodeGenerator from '$lib/components/embed-code-generator.svelte';
   
   // Get data from server load function
   export let data;
@@ -34,9 +33,9 @@
   const widgetStore = createWidgetStore(data?.widget || null);
   
   // UI state
-  let isLoading = false;
+  let _isLoading = false;
   let isSaving = false;
-  let error = null;
+  let _error = null;
   let showDeleteConfirm = false;
   
   // Widget configuration from store - for reactive binding
@@ -113,7 +112,7 @@
   };
   
   // Generate embed code for the widget
-  function generateEmbedCode(): string {
+  function _generateEmbedCode(): string {
     return `<div class="gr-widget" 
   data-gr-place-id="${placeId}" 
   data-gr-api-key="${widgetData.api_key}" 
@@ -127,19 +126,7 @@
   data-gr-sort-by="${filters.sortBy}"
   data-gr-max-review-age="${filters.maxAge}"
 ></div>
-<${'script'} src="${window.location.origin}/widget/${widgetId}.js" async defer></${'script'}>`;
-  }
-  
-  // Copy embed code to clipboard
-  function copyEmbedCode(): void {
-    navigator.clipboard.writeText(generateEmbedCode())
-      .then(() => {
-        toast.success('Embed code copied to clipboard');
-      })
-      .catch(err => {
-        console.error('Failed to copy embed code:', err);
-        toast.error('Failed to copy embed code');
-      });
+<script src="${window.location.origin}/widget/${widgetId}.js" async defer><\/script>`;
   }
   
   // Update display type
@@ -859,40 +846,10 @@
             <!-- Embed Code Tab -->
             <Tabs.Content value="embed">
               <div class="space-y-4 pt-4">
-                <div class="space-y-2">
-                  <Label.Root>Embed Instructions</Label.Root>
-                  <p class="text-sm text-muted-foreground">
-                    Copy and paste this code into your website to display your Google Reviews widget.
-                  </p>
-                </div>
-                
-                <div class="bg-muted p-4 rounded-md relative">
-                  <pre class="text-xs overflow-x-auto whitespace-pre-wrap">{#if browser}{generateEmbedCode()}{/if}</pre>
-                  <Button.Root
-                    variant="ghost"
-                    size="icon"
-                    on:click={copyEmbedCode}
-                    class="absolute top-2 right-2"
-                  >
-                    <Copy class="h-4 w-4" />
-                  </Button.Root>
-                </div>
-                
-                <div class="space-y-2 mt-4">
-                  <h4 class="font-medium">Installation Instructions</h4>
-                  <ol class="list-decimal ml-5 space-y-2 text-sm">
-                    <li>Copy the code above.</li>
-                    <li>Paste it into the HTML of your website where you want the widget to appear.</li>
-                    <li>The widget will automatically load and display your Google reviews.</li>
-                  </ol>
-                </div>
-                
-                <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-md">
-                  <h4 class="font-medium text-amber-800">Advanced Integration</h4>
-                  <p class="text-sm text-amber-700 mt-1">
-                    Need help integrating this widget? Contact support for assistance with custom implementations.
-                  </p>
-                </div>
+                <EmbedCodeGenerator 
+                  widgetId={widgetId} 
+                  widgetName={widgetData.name || 'Widget'} 
+                />
               </div>
             </Tabs.Content>
           </Tabs.Root>
