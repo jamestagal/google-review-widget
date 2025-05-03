@@ -6,7 +6,7 @@
     // export let showBreadcrumbs = true;
 </script>
 
-<div class="container py-6 space-y-6">
+<div class="container mx-auto py-6 px-4 max-w-7xl">
 <!--     {#if showBreadcrumbs}
         <Breadcrumbs />
     {/if} -->

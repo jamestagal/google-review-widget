@@ -13,7 +13,6 @@
 		PanelLeft,
 		HelpCircle, 
 		Wrench, // Using Wrench instead of Tool since Tool isn't available
-		LogOut
 	} from 'lucide-svelte';
 
 	import Logo from '$lib/components/Logo.svelte';
@@ -30,7 +29,7 @@
 		{ href: '/dashboard/testimonials', label: 'Testimonials', icon: Star, badge: 'New' },
 		{ href: '/dashboard/forms', label: 'Collection Forms', icon: FileText },
 		{ href: '/dashboard/widgets', label: 'Widgets', icon: Layout },
-		{ href: '/dashboard/review-booster', label: 'Review Booster', icon: TrendingUp, badge: 'New' },
+		{ href: '/dashboard/analytics', label: 'Analytics', icon: TrendingUp },
 		{ href: '/dashboard/wall-of-love', label: 'Wall of Love', icon: Heart, badge: 'New' },
 		{ href: '/dashboard/campaigns', label: 'Campaigns', icon: MessageSquare },
 	];
@@ -44,7 +43,7 @@
 	];
 	
 	// Function to navigate to settings/billing from dashboard/billing or vice versa
-	function navigateToBilling() {
+	function _navigateToBilling() {
 		const currentPath = window.location.pathname;
 		if (currentPath.includes('/dashboard/billing')) {
 			window.location.href = '/settings/billing';
@@ -94,10 +93,10 @@
 					<Tooltip.Content side="right">{item.label}</Tooltip.Content>
 				</Tooltip.Root>
 			{/each}
-		</nav>
-		
-		<!-- Bottom Navigation Items -->
-		<nav class="mt-auto flex flex-col items-center gap-4 px-2 py-5 border-t">
+
+			<!-- Separator between main and bottom navigation -->
+			<div class="my-2 w-8 border-t border-muted"></div>
+			
 			{#each bottomNavItems as item}
 				<Tooltip.Root>
 					<Tooltip.Trigger asChild let:builder>
