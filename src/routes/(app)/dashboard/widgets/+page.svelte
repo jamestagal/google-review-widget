@@ -30,6 +30,7 @@
         views_count: number;
         user_id: string;
         embed_count: number;
+        is_mock?: boolean; // Flag to identify mock widgets
     }
     
     // Access initial data from the server component
@@ -190,6 +191,12 @@
     
     // Function to copy embed code
     function copyEmbedCode(widget: ReviewWidget) {
+        // For mock widgets, show a message instead of copying embed code
+        if (widget.is_mock) {
+            toast.info('This is a mock widget for demonstration purposes only.');
+            return;
+        }
+        
         // Avoid template literals for script tags to prevent parsing issues
         const widgetProps = [
             `data-gr-api-key="${widget.api_key}"`,
@@ -215,6 +222,12 @@
     
     // Function to view widget preview
     function openPreview(widget: ReviewWidget) {
+        // For mock widgets, show a message instead of opening the preview
+        if (widget.is_mock) {
+            toast.info('This is a mock widget for demonstration purposes only.');
+            return;
+        }
+        
         const previewUrl = `/dashboard/widgets/debug?apiKey=${widget.api_key}&placeId=${widget.place_id}&displayMode=${widget.display_mode}&theme=${widget.theme}&maxReviews=${widget.max_reviews}&minRating=${widget.min_rating}`;
         window.open(previewUrl, '_blank');
     }

@@ -1,5 +1,6 @@
 import { createServerClient } from '$lib/utils/supabase/server';
 import { error } from '@sveltejs/kit';
+import { DEV } from '$app/environment';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -48,6 +49,62 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
     // Calculate pagination range
     const from = (sanitizedPage - 1) * sanitizedPageSize;
     const to = from + sanitizedPageSize - 1;
+
+    // DEV MODE: Always show mock/demo widgets if in development (SvelteKit way)
+    if (DEV) {
+      console.log('[DEV] Returning mock widgets for testing workflow.');
+      let mockWidgets = [
+        {
+          id: 'mock-1',
+          name: 'Demo Widget One',
+          place_id: 'MOCK_PLACE_ID_1', // Using mock place ID to avoid API calls
+          place_name: 'Demo Cafe',
+          api_key: 'demo-api-key-1',
+          theme: 'light',
+          display_mode: 'list',
+          max_reviews: 5,
+          min_rating: 4,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          views_count: 123,
+          user_id: user ? user.id : 'demo',
+          embed_count: 2,
+          is_mock: true // Flag to identify mock widgets
+        },
+        {
+          id: 'mock-2',
+          name: 'Demo Widget Two',
+          place_id: 'MOCK_PLACE_ID_2', // Using mock place ID to avoid API calls
+          place_name: 'Sample Bistro',
+          api_key: 'demo-api-key-2',
+          theme: 'dark',
+          display_mode: 'carousel',
+          max_reviews: 10,
+          min_rating: 3,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          views_count: 456,
+          user_id: user ? user.id : 'demo',
+          embed_count: 5,
+          is_mock: true // Flag to identify mock widgets
+        }
+      ];
+      // Filter by search term if present
+      if (filterName && filterName.trim() !== '') {
+        const lower = filterName.toLowerCase();
+        mockWidgets = mockWidgets.filter(w => w.name.toLowerCase().includes(lower));
+      }
+      return {
+        widgets: mockWidgets,
+        totalCount: mockWidgets.length,
+        page: 1,
+        pageSize: sanitizedPageSize,
+        totalPages: 1,
+        sortBy: sanitizedSortBy,
+        sortOrder: sanitizedSortOrder,
+        filterName
+      };
+    }
 
     // Query widgets with proper relationship to business profiles
     let widgetsQuery = supabase
@@ -134,20 +191,61 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
       };
     }) || [];
 
-    // Calculate total pages
-    const totalCount = count || 0;
-    const totalPages = Math.max(1, Math.ceil(totalCount / sanitizedPageSize));
-    
+    // If authenticated user has no widgets, return mock/demo widgets (for dev/demo purposes)
+    let finalWidgets = widgetsWithStats;
+    let finalTotalCount = count || 0;
+    let finalTotalPages = Math.max(1, Math.ceil(finalTotalCount / sanitizedPageSize));
+    if (finalWidgets.length === 0) {
+      finalWidgets = [
+        {
+          id: 'mock-1',
+          name: 'Demo Widget One',
+          place_id: 'MOCK_PLACE_ID_1', // Using mock place ID to avoid API calls
+          place_name: 'Demo Cafe',
+          api_key: 'demo-api-key-1',
+          theme: 'light',
+          display_mode: 'list',
+          max_reviews: 5,
+          min_rating: 4,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          views_count: 123,
+          user_id: user.id,
+          embed_count: 2,
+          is_mock: true // Flag to identify mock widgets
+        },
+        {
+          id: 'mock-2',
+          name: 'Demo Widget Two',
+          place_id: 'MOCK_PLACE_ID_2', // Using mock place ID to avoid API calls
+          place_name: 'Sample Bistro',
+          api_key: 'demo-api-key-2',
+          theme: 'dark',
+          display_mode: 'carousel',
+          max_reviews: 10,
+          min_rating: 3,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          views_count: 456,
+          user_id: user.id,
+          embed_count: 5,
+          is_mock: true // Flag to identify mock widgets
+        }
+      ];
+      finalTotalCount = finalWidgets.length;
+      finalTotalPages = 1;
+    }
+
     // Ensure page is not beyond total pages
-    const finalPage = sanitizedPage > totalPages ? 1 : sanitizedPage;
+    const finalPage = sanitizedPage > finalTotalPages ? 1 : sanitizedPage;
 
     // Return the data for the page
     return {
-      widgets: widgetsWithStats,
-      totalCount,
+      widgets: finalWidgets,
+      totalCount: finalTotalCount,
       page: finalPage,
       pageSize: sanitizedPageSize,
-      totalPages,
+      totalPages: finalTotalPages,
       sortBy: sanitizedSortBy,
       sortOrder: sanitizedSortOrder,
       filterName
