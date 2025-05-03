@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import type { GoogleReview } from '$lib/services/reviews';
   import StarRating from './star-rating.svelte';
+  import { trackImpression, trackInteraction } from '$lib/tracking/analytics-tracker';
   
   // Widget configuration props
   export let config: any = {}; // Accept config object from editor
@@ -79,6 +80,16 @@
       } else if (placeId && apiKey) {
         // Only fetch from API if not in editor mode and we have required params
         fetchReviews();
+        
+        // Track impression when widget loads (not in editor mode)
+        if (!editorMode) {
+          try {
+            await trackImpression(placeId, apiKey);
+          } catch (trackError) {
+            console.error('Error tracking impression:', trackError);
+            // Don't fail the widget if tracking fails
+          }
+        }
       } else {
         // No place ID or API key provided
         error = 'Missing required parameters';
@@ -113,16 +124,22 @@
   function setupCarousel() {
     if (carouselInterval) clearInterval(carouselInterval);
     
-    // Start the carousel with 5 second intervals
+    // Get autoplay speed from config or use default
+    const autoplaySpeed = config?.autoplaySpeed || 5000;
+    
+    // Start the carousel with configured interval
     carouselInterval = setInterval(() => {
-      currentReviewIndex = (currentReviewIndex + 1) % reviews.length;
-    }, 5000) as unknown as number; // Type assertion needed due to Node vs Browser setTimeout return types
+      nextReview();
+    }, autoplaySpeed);
   }
   
   function prevReview() {
-    currentReviewIndex = currentReviewIndex === 0 
-      ? reviews.length - 1 
-      : currentReviewIndex - 1;
+    currentReviewIndex = (currentReviewIndex - 1 + reviews.length) % reviews.length;
+    
+    // Track interaction when user navigates reviews (not in editor mode)
+    if (!editorMode && placeId && apiKey) {
+      trackInteraction(placeId, apiKey, 'navigation', 'prev-button');
+    }
     
     // Reset the carousel interval when manually changing reviews
     if (displayMode === 'carousel') setupCarousel();
@@ -131,8 +148,42 @@
   function nextReview() {
     currentReviewIndex = (currentReviewIndex + 1) % reviews.length;
     
+    // Track interaction when user navigates reviews (not in editor mode)
+    if (!editorMode && placeId && apiKey) {
+      trackInteraction(placeId, apiKey, 'navigation', 'next-button');
+    }
+    
     // Reset the carousel interval when manually changing reviews
     if (displayMode === 'carousel') setupCarousel();
+  }
+  
+  // Jump to a specific review in carousel mode
+  function goToReview(index: number) {
+    currentReviewIndex = index;
+    
+    // Track interaction when user jumps to a specific review (not in editor mode)
+    if (!editorMode && placeId && apiKey) {
+      trackInteraction(placeId, apiKey, 'navigation', `indicator-${index}`);
+    }
+    
+    // Reset the carousel interval when manually changing reviews
+    if (displayMode === 'carousel') setupCarousel();
+  }
+  
+  // Handle review click
+  function handleReviewClick(reviewId: string) {
+    // Track interaction when user clicks on a review (not in editor mode)
+    if (!editorMode && placeId && apiKey) {
+      trackInteraction(placeId, apiKey, 'review-click', reviewId);
+    }
+  }
+  
+  // Handle "View all reviews" click
+  function handleViewAllClick() {
+    // Track interaction when user clicks "View all reviews" (not in editor mode)
+    if (!editorMode && placeId && apiKey) {
+      trackInteraction(placeId, apiKey, 'view-all-click');
+    }
   }
   
   // Fetch reviews from the API
@@ -307,11 +358,22 @@
                 <img 
                   class="reviewer-photo" 
                   src={reviews[currentReviewIndex].profile_photo_url} 
-                  alt={reviews[currentReviewIndex].author_name} 
+                  alt={reviews[currentReviewIndex].author_name}
                 />
               {/if}
+              
               <div class="reviewer-info">
-                <h4 class="reviewer-name" style={getTitleStyles()}>{reviews[currentReviewIndex].author_name}</h4>
+                <h4 class="reviewer-name">
+                  <a 
+                    href={reviews[currentReviewIndex].author_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={`color: ${config?.colors?.links || '#0070f3'}`}
+                    on:click={() => handleReviewClick(reviews[currentReviewIndex].id)}
+                  >
+                    {reviews[currentReviewIndex].author_name}
+                  </a>
+                </h4>
                 <div class="review-rating">
                   <StarRating rating={reviews[currentReviewIndex].rating} starColor={config?.colors?.stars || '#FFD700'} />
                   <span class="review-date" style={getTextStyles()}>{reviews[currentReviewIndex].relative_time_description}</span>
@@ -340,15 +402,30 @@
           {/each}
         </div>
       {:else}
-        <!-- Grid or List View -->
+        <!-- Grid or List View: Show all reviews -->
         {#each reviews as review}
           <div class="review-card">
             <div class="review-header">
               {#if config?.showPhotos !== false && review.profile_photo_url}
-                <img class="reviewer-photo" src={review.profile_photo_url} alt={review.author_name} />
+                <img 
+                  class="reviewer-photo" 
+                  src={review.profile_photo_url} 
+                  alt={review.author_name}
+                />
               {/if}
+              
               <div class="reviewer-info">
-                <h4 class="reviewer-name" style={getTitleStyles()}>{review.author_name}</h4>
+                <h4 class="reviewer-name">
+                  <a 
+                    href={review.author_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={`color: ${config?.colors?.links || '#0070f3'}`}
+                    on:click={() => handleReviewClick(review.id)}
+                  >
+                    {review.author_name}
+                  </a>
+                </h4>
                 <div class="review-rating">
                   <StarRating rating={review.rating} starColor={config?.colors?.stars || '#FFD700'} />
                   <span class="review-date" style={getTextStyles()}>{review.relative_time_description}</span>
@@ -362,12 +439,13 @@
     </div>
     
     <!-- Widget Footer -->
-    <div class="widget-footer" style={getTextStyles()}>
+    <div class="widget-footer">
       <a 
-        href={`https://search.google.com/local/reviews?placeid=${placeId}`} 
+        href={`https://www.google.com/maps/place/?q=place_id:${placeId}`} 
         target="_blank" 
         rel="noopener noreferrer"
         style={`color: ${config?.colors?.links || '#0070f3'}`}
+        on:click={handleViewAllClick}
       >
         View all reviews on Google
       </a>
